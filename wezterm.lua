@@ -15,18 +15,17 @@ local config = wezterm.config_builder()
 function docker_list()
   local docker_list = {}
   local docker_command = {
-    '/usr/local/bin/docker',
+    '/usr/bin/env',
+    'docker',
     'container',
     'ls',
     '--format',
     '{{.ID}}:{{.Names}}',
   }
 
-  wezterm.log_info("Running Docker command: " ..  table.concat(docker_command, " "))
+  wezterm.log_info("Running Docker command: " .. table.concat(docker_command, " "))
 
   local success, stdout, stderr = wezterm.run_child_process(docker_command)
-
-  wezterm.log_info("hello world! my name is " .. wezterm.hostname())
 
   for _, line in ipairs(wezterm.split_by_newlines(stdout)) do
     local id, name = line:match '(.-):(.+)'
