@@ -12,20 +12,40 @@ local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
 
+-- Utility function to run a command via the default shell
+function run_via_default_shell(command)
+  local shell = os.getenv("SHELL") or "/bin/bash"
+  local shell_command = { shell, '-l', '-c', command }
+
+  wezterm.log_info("Running command via shell: " .. table.concat(shell_command, " "))
+
+  local success, stdout, stderr = wezterm.run_child_process(shell_command)
+  if not success then
+    error("Failed to run command via shell: " .. stderr)
+  end
+  return success, stdout, stderr
+end
+
+-- Utility function to find the absolute path of a command using 'which'
+function which(command)
+  local which_command = 'which ' .. command
+  local success, stdout, stderr = run_via_default_shell(which_command)
+  if success and stdout then
+    return stdout:match("^%s*(.-)%s*$") -- Trim any leading/trailing whitespace
+  else
+    error("Command not found: " .. command)
+  end
+end
+
+-- Function to list Docker containers
 function docker_list()
   local docker_list = {}
-  local docker_command = {
-    '/usr/bin/env',
-    'docker',
-    'container',
-    'ls',
-    '--format',
-    '{{.ID}}:{{.Names}}',
-  }
+  local docker_path = which('docker')
+  local docker_command = docker_path .. ' container ls --format "{{.ID}}:{{.Names}}"'
 
-  wezterm.log_info("Running Docker command: " .. table.concat(docker_command, " "))
+  wezterm.log_info("Running Docker command: " .. docker_command)
 
-  local success, stdout, stderr = wezterm.run_child_process(docker_command)
+  local success, stdout, stderr = run_via_default_shell(docker_command)
 
   for _, line in ipairs(wezterm.split_by_newlines(stdout)) do
     local id, name = line:match '(.-):(.+)'
@@ -36,10 +56,12 @@ function docker_list()
   return docker_list
 end
 
+-- Function to create a Docker label function
 function make_docker_label_func(id)
+  local docker_path = which('docker')
   return function(name)
     local success, stdout, stderr = wezterm.run_child_process {
-      'docker',
+      docker_path,
       'inspect',
       '--format',
       '{{.State.Running}}',
@@ -54,11 +76,13 @@ function make_docker_label_func(id)
   end
 end
 
+-- Function to create a Docker fixup function
 function make_docker_fixup_func(id)
+  local docker_path = which('docker')
   return function(cmd)
     cmd.args = cmd.args or { '/bin/sh' }
     local wrapped = {
-      'docker',
+      docker_path,
       'exec',
       '-it',
       id,
