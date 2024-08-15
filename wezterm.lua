@@ -41,7 +41,7 @@ end
 function docker_list()
   local docker_list = {}
   local docker_path = which('docker')
-  local docker_command = docker_path .. ' container ls --format "{{.ID}}:{{.Names}}"'
+  local docker_command = docker_path .. ' container ls --format "{{.ID}}:{{.Names}}-{{.Image}}"'
 
   wezterm.log_info("Running Docker command: " .. docker_command)
 
