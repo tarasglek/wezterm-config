@@ -112,5 +112,6 @@ function compute_exec_domains()
 end
 
 config.exec_domains = compute_exec_domains()
+config.ssh_backend = "Ssh2"
 
 return config
