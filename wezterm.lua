@@ -7,10 +7,11 @@ local config = wezterm.config_builder()
 -- wezterm.log_info("hello world! my name is " .. wezterm.hostname())
 -- Returns our config to be evaluated. We must always do this at the bottom of this file
 
-
 local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
+-- Cache table for which results
+local which_cache = {}
 
 -- Utility function to run a command via the default shell
 function run_via_default_shell(command)
@@ -28,10 +29,16 @@ end
 
 -- Utility function to find the absolute path of a command using 'which'
 function which(command)
+  if which_cache[command] then
+    return which_cache[command]
+  end
+
   local which_command = 'which ' .. command
   local success, stdout, stderr = run_via_default_shell(which_command)
   if success and stdout then
-    return stdout:match("^%s*(.-)%s*$") -- Trim any leading/trailing whitespace
+    local path = stdout:match("^%s*(.-)%s*$") -- Trim any leading/trailing whitespace
+    which_cache[command] = path
+    return path
   else
     error("Command not found: " .. command)
   end
